@@ -1,7 +1,7 @@
 package shell
 
 import (
-	"bytes"
+	"bufio"
 	"os/exec"
 	"strings"
 
@@ -17,20 +17,24 @@ func (r *Request) ExecuteWithResults(input string, dynamicValues, previous outpu
 
 	cmd := exec.Command(r.Command, r.Args...)
 	stdout, _ := cmd.StdoutPipe()
-	stderr, _ := cmd.StderrPipe()
+	scanner := bufio.NewScanner(stdout)
+	cmdStr := ""
 	//TODO: stdin option
 	// Run command
 	gologger.Verbose().Msgf("[%s] Executing SHELL command %s", r.options.TemplateID, cmd.Path+" "+strings.Join(cmd.Args[1:], " "))
 	if err := cmd.Start(); err != nil {
 		return errors.Wrap(err, "Command execution failed")
 	}
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(stdout)
-	buf.ReadFrom(stderr)
+
+	go func() {
+		for scanner.Scan() {
+			s := scanner.Text()
+			cmdStr += s + "\n"
+		}
+	}()
 	if err := cmd.Wait(); err != nil {
 		return errors.Wrap(err, "Error while waiting for command to exit")
 	}
-	cmdStr := buf.String()
 	gologger.Verbose().Msgf("[%s] SHELL command output: %s", r.options.TemplateID, cmdStr)
 	outputEvent := r.responseToDSLMap(cmd, cmdStr, input, input)
 	for k, v := range previous {
