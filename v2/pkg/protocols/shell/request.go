@@ -19,7 +19,7 @@ func (r *Request) ExecuteWithResults(input string, dynamicValues, previous outpu
 	//TODO: stdin option
 	// Run command
 	gologger.Verbose().Msgf("[%s] Executing SHELL command %s", r.options.TemplateID, cmd.Path+" "+strings.Join(cmd.Args[1:], " "))
-	out, err := cmd.Output()
+	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return errors.Wrap(err, "Could not execute command")
 	}
