@@ -68,7 +68,7 @@ func Parse(filePath string, options protocols.ExecuterOptions) (*Template, error
 	options.TemplatePath = filePath
 
 	// If no requests, and it is also not a workflow, return error.
-	if len(template.RequestsDNS)+len(template.RequestsHTTP)+len(template.RequestsFile)+len(template.RequestsNetwork)+len(template.RequestsHeadless)+len(template.Workflows) == 0 {
+	if len(template.RequestsDNS)+len(template.RequestsHTTP)+len(template.RequestsFile)+len(template.RequestsNetwork)+len(template.RequestsHeadless)+len(template.RequestShell)+len(template.Workflows) == 0 {
 		return nil, fmt.Errorf("no requests defined for %s", template.ID)
 	}
 
@@ -128,6 +128,12 @@ func Parse(filePath string, options protocols.ExecuterOptions) (*Template, error
 	}
 	if len(template.RequestsHeadless) > 0 && !options.Options.OfflineHTTP && options.Options.Headless {
 		for _, req := range template.RequestsHeadless {
+			requests = append(requests, req)
+		}
+		template.Executer = executer.NewExecuter(requests, &options)
+	}
+	if len(template.RequestShell) > 0 && !options.Options.OfflineHTTP {
+		for _, req := range template.RequestShell {
 			requests = append(requests, req)
 		}
 		template.Executer = executer.NewExecuter(requests, &options)
