@@ -1,6 +1,7 @@
 package shell
 
 import (
+	"bytes"
 	"os/exec"
 	"strings"
 
@@ -8,7 +9,6 @@ import (
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/nuclei/v2/pkg/output"
 	"github.com/projectdiscovery/nuclei/v2/pkg/protocols"
-	"github.com/projectdiscovery/nuclei/v2/pkg/protocols/common/tostring"
 )
 
 var _ protocols.Request = &Request{}
@@ -16,14 +16,21 @@ var _ protocols.Request = &Request{}
 func (r *Request) ExecuteWithResults(input string, dynamicValues, previous output.InternalEvent, callback protocols.OutputEventCallback) error {
 
 	cmd := exec.Command(r.Command, r.Args...)
+	stdout, _ := cmd.StdoutPipe()
+	stderr, _ := cmd.StderrPipe()
 	//TODO: stdin option
 	// Run command
 	gologger.Verbose().Msgf("[%s] Executing SHELL command %s", r.options.TemplateID, cmd.Path+" "+strings.Join(cmd.Args[1:], " "))
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return errors.Wrap(err, "Could not execute command")
+	if err := cmd.Start(); err != nil {
+		return errors.Wrap(err, "Command execution failed")
 	}
-	cmdStr := tostring.UnsafeToString(out)
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(stdout)
+	buf.ReadFrom(stderr)
+	if err := cmd.Wait(); err != nil {
+		return errors.Wrap(err, "Error while waiting for command to exit")
+	}
+	cmdStr := buf.String()
 	gologger.Verbose().Msgf("[%s] SHELL command output: %s", r.options.TemplateID, cmdStr)
 	outputEvent := r.responseToDSLMap(cmd, cmdStr, input, input)
 	for k, v := range previous {
