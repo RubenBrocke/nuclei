@@ -23,8 +23,8 @@ func (r *Request) ExecuteWithResults(input string, dynamicValues, previous outpu
 	if err != nil {
 		return errors.Wrap(err, "Could not execute command")
 	}
-	gologger.Verbose().Msgf("[%s] SHELL command output: %s", r.options.TemplateID, out)
 	cmdStr := tostring.UnsafeToString(out)
+	gologger.Verbose().Msgf("[%s] SHELL command output: %s", r.options.TemplateID, cmdStr)
 	outputEvent := r.responseToDSLMap(cmd, cmdStr, input, input)
 	for k, v := range previous {
 		outputEvent[k] = v
